@@ -128,11 +128,11 @@ class _SettingsPageState extends State<SettingsPage> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Admin Name', // Replace with actual admin name
+                'LATI', // Replace with actual admin name
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               Text(
-                'LATI@Libya.com', // Replace with actual email
+                'LATI@Libyan.org', // Replace with actual email
                 style: TextStyle(color: Colors.grey[600]),
               ),
             ],
