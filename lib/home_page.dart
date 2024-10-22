@@ -136,7 +136,7 @@ class _HomePageState extends State<HomePage> {
                     leading: const CircleAvatar(
                       backgroundImage: NetworkImage('https://via.placeholder.com/150'),
                     ),
-                    title: const Text('LATI'),
+                    title: const Text(' Doe'),
                     subtitle: Row(
                       children: [
                         ElevatedButton.icon(
@@ -161,30 +161,16 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                   ),
-                  // Inside the _showForm method
-
                   Expanded(
                     child: TextField(
                       controller: _postController,
-                      decoration: InputDecoration(
+                      decoration: const InputDecoration(
                         hintText: "What's on your mind?",
                         border: InputBorder.none,
-                        hintStyle: TextStyle(
-                          color: Colors.grey.withOpacity(0.5), // Adjust opacity for hint text
-                        ),
                       ),
-                      style: TextStyle(color: Colors.grey), // Set text color to gray
                       maxLines: null,
                     ),
                   ),
-
-// In the Row with action buttons for image selection
-                  _buildActionButton(Icons.image, 'Photo', Colors.green, () async {
-                    final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
-                    setState(() {
-                      _image = pickedFile; // Use the picked image
-                    });
-                  }),
                   if (_image != null)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 10),
