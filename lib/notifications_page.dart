@@ -28,9 +28,17 @@ class _NotificationsPageState extends State<NotificationsPage> {
 
     try {
       final snapshot = await _firestore
-          .collection('notifications')
-          .orderBy('timestamp', descending: true) // ترتيب حسب حقل timestamp
+          .collection('job_seekers') // استيراد الطلبات من مجموعة job_seekers
+          .orderBy('timestamp', descending: true) // تأكد من وجود حقل timestamp
           .get();
+
+      if (snapshot.docs.isEmpty) {
+        setState(() {
+          _errorMessage = 'No notifications found.';
+          _isLoading = false;
+        });
+        return;
+      }
 
       setState(() {
         _notifications = snapshot.docs;
@@ -44,29 +52,10 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  Future<void> _addRegistrationRequest(String studentName, String courseId) async {
-    try {
-      DocumentReference<Map<String, dynamic>> requestRef = await _firestore.collection('registration_requests').add({
-        'name': studentName,
-        'courseId': courseId,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-
-      await _firestore.collection('notifications').add({
-        'name': studentName,
-        'courseId': courseId,
-        'requestId': requestRef.id,
-        'timestamp': FieldValue.serverTimestamp(),
-      });
-    } catch (e) {
-      print('Error adding registration request: $e');
-    }
-  }
-
-  Future<void> _acceptNotification(String notificationId, String requestId) async {
+  Future<void> _acceptNotification(String notificationId) async {
     try {
       DocumentSnapshot<Map<String, dynamic>> requestDoc =
-      await _firestore.collection('registration_requests').doc(requestId).get();
+      await _firestore.collection('job_seekers').doc(notificationId).get();
 
       if (requestDoc.exists) {
         await _firestore.collection('job_seekers_accepted').add({
@@ -75,10 +64,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
           'timestamp': FieldValue.serverTimestamp(),
         });
 
-        await _firestore.collection('notifications').doc(notificationId).delete();
-        await _firestore.collection('registration_requests').doc(requestId).delete();
+        await _firestore.collection('job_seekers').doc(notificationId).delete(); // نقل الطلب
 
-        _fetchNotifications();
+        _fetchNotifications(); // تحديث قائمة الإشعارات
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -89,10 +77,9 @@ class _NotificationsPageState extends State<NotificationsPage> {
     }
   }
 
-  Future<void> _rejectNotification(String notificationId, String requestId) async {
+  Future<void> _rejectNotification(String notificationId) async {
     try {
-      await _firestore.collection('notifications').doc(notificationId).delete();
-      await _firestore.collection('registration_requests').doc(requestId).delete();
+      await _firestore.collection('job_seekers').doc(notificationId).delete(); // حذف الطلب
 
       _fetchNotifications();
 
@@ -147,7 +134,6 @@ class _NotificationsPageState extends State<NotificationsPage> {
             notification['courseId'] as String?,
             notification['timestamp']?.toDate().toString() ?? 'No time',
             notification.id,
-            notification['requestId'] as String,
           );
         },
       ),
@@ -159,77 +145,61 @@ class _NotificationsPageState extends State<NotificationsPage> {
       String? studentName,
       String? courseId,
       String? time,
-      String notificationId,
-      String requestId,
-      ) {
+      String notificationId) {
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => RegistrationRequestDetailsPage(requestId: requestId),
-            ),
-          );
-        },
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Row(
-            children: [
-              Icon(Icons.notifications, size: 40, color: Colors.blue),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      '$studentName has requested to register for $courseId',
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      time ?? 'No time',
-                      style: const TextStyle(color: Colors.grey),
-                    ),
-                  ],
-                ),
-              ),
-              Column(
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Icon(Icons.notifications, size: 40, color: Colors.blue),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.check, color: Colors.green),
-                    onPressed: () {
-                      _acceptNotification(notificationId, requestId);
-                    },
+                  Text(
+                    '$studentName has requested to register for $courseId',
+                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                   ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.red),
-                    onPressed: () {
-                      _rejectNotification(notificationId, requestId);
-                    },
+                  const SizedBox(height: 4),
+                  Text(
+                    time ?? 'No time',
+                    style: const TextStyle(color: Colors.grey),
                   ),
                 ],
               ),
-            ],
-          ),
+            ),
+            Column(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.check, color: Colors.green),
+                  onPressed: () {
+                    _acceptNotification(notificationId);
+                  },
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close, color: Colors.red),
+                  onPressed: () {
+                    _rejectNotification(notificationId);
+                  },
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-class RegistrationRequestDetailsPage extends StatelessWidget {
-  final String requestId;
-
-  const RegistrationRequestDetailsPage({Key? key, required this.requestId}) : super(key: key);
-
+class JobSeekersPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Request Details')),
-      body: Center(child: Text('Details for request ID: $requestId')),
+      appBar: AppBar(title: const Text('Job Seekers')),
+      body: Center(child: Text('Job Seekers List')),
     );
   }
 }

@@ -3,6 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'ProfileDetailsPage.dart';  // استيراد الصفحة الجديدة
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -56,36 +57,43 @@ class _SettingsPageState extends State<SettingsPage> {
     }
   }
 
+  void _updateProfile(String name, String email, String? imageUrl) {
+    setState(() {
+      _adminName = name;
+      _adminEmail = email;
+      _adminProfileImageUrl = imageUrl;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       theme: _isDarkMode ? ThemeData.dark() : ThemeData.light(),
       home: Scaffold(
         appBar: AppBar(
+          flexibleSpace: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF980E0E), // اللون الأول
+                  Color(0xFF330000), // اللون الثاني
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.topRight,
+              ),
+            ),
+          ),
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
+            icon: const Icon(Icons.arrow_back, color: Colors.white), // تعيين لون الأيقونة إلى الأبيض
             onPressed: () {
               Navigator.of(context).pop();
             },
           ),
           title: Text(
             _isArabic ? 'الإعدادات' : 'Settings',
-            style: const TextStyle(
-              color: Colors.white, // Set the app bar title to white
-            ),
+            style: const TextStyle(color: Colors.white), // تعيين اللون الأبيض للنص
           ),
-          flexibleSpace: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  const Color(0xFF9b1a1a),
-                  const Color(0xFFb71111c),
-                ],
-              ),
-            ),
-          ),
+          backgroundColor: Colors.transparent, // لجعل الخلفية شفافة
         ),
         body: Padding(
           padding: const EdgeInsets.all(16.0),
@@ -99,14 +107,13 @@ class _SettingsPageState extends State<SettingsPage> {
               const SizedBox(height: 20),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(
-                    context,
+                  Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => ProfileDetailsPage(
                         adminName: _adminName,
                         adminEmail: _adminEmail,
                         adminProfileImageUrl: _adminProfileImageUrl,
-                        profileImage: _profileImage,
+                        onProfileUpdated: _updateProfile, // Pass the callback
                       ),
                     ),
                   );
@@ -164,7 +171,7 @@ class _SettingsPageState extends State<SettingsPage> {
       child: Column(
         children: [
           ListTile(
-            leading: const Icon(Icons.language, color: Color(0xFF9b1a1a)),
+            leading: const Icon(Icons.language, color: Color(0xFF980E0E)),
             title: Text(_isArabic ? 'تغيير اللغة' : 'Change Language'),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -180,13 +187,10 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ],
             ),
-            onTap: () {
-              // Implement language change functionality if needed
-            },
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.dark_mode, color: Color(0xFF9b1a1a)),
+            leading: const Icon(Icons.dark_mode, color: Color(0xFF980E0E)),
             title: Text(_isArabic ? 'الوضع الداكن' : 'Dark Mode'),
             trailing: Switch(
               value: _isDarkMode,
@@ -196,169 +200,26 @@ class _SettingsPageState extends State<SettingsPage> {
                 });
               },
             ),
-            onTap: () {
-              // Implement dark mode toggle if needed
-            },
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.notifications, color: Color(0xFF9b1a1a)),
+            leading: const Icon(Icons.notifications, color: Color(0xFF980E0E)),
             title: Text(_isArabic ? 'الإشعارات' : 'Notifications'),
             trailing: const Icon(Icons.arrow_forward),
-            onTap: () {
-              // Implement notifications settings functionality
-            },
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.privacy_tip, color: Color(0xFF9b1a1a)),
+            leading: const Icon(Icons.privacy_tip, color: Color(0xFF980E0E)),
             title: Text(_isArabic ? 'سياسة الخصوصية' : 'Privacy Policy'),
             trailing: const Icon(Icons.arrow_forward),
-            onTap: () {
-              // Implement privacy policy functionality
-            },
           ),
           const Divider(),
           ListTile(
-            leading: const Icon(Icons.info, color: Color(0xFF9b1a1a)),
+            leading: const Icon(Icons.info, color: Color(0xFF980E0E)),
             title: Text(_isArabic ? 'حول' : 'About'),
             trailing: const Icon(Icons.arrow_forward),
-            onTap: () {
-              // Implement about functionality
-            },
           ),
         ],
-      ),
-    );
-  }
-}
-
-class ProfileDetailsPage extends StatelessWidget {
-  final String? adminName;
-  final String? adminEmail;
-  final String? adminProfileImageUrl;
-  final File? profileImage;
-
-  const ProfileDetailsPage({
-    Key? key,
-    required this.adminName,
-    required this.adminEmail,
-    required this.adminProfileImageUrl,
-    required this.profileImage,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile Details'),
-        flexibleSpace: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [
-                const Color(0xFF9b1a1a),
-                const Color(0xFFb71111c),
-              ],
-            ),
-          ),
-        ),
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(height: 32),
-            Stack(
-              alignment: Alignment.bottomRight,
-              children: [
-                CircleAvatar(
-                  radius: 64,
-                  backgroundImage: profileImage != null
-                      ? FileImage(profileImage!)
-                      : adminProfileImageUrl != null
-                      ? NetworkImage(adminProfileImageUrl!)
-                      : const NetworkImage('https://via.placeholder.com/150'),
-                ),
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF9b1a1a), // Updated container color
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                      color: Colors.white,
-                      width: 2.0,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.edit,
-                    color: Colors.white,
-                    size: 20,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Text(
-              adminName ?? 'LATI',
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              adminEmail ?? 'LATI@Libyan.org',
-              style: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 16,
-              ),
-            ),
-            const SizedBox(height: 32),
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      const Color(0xFF9b1a1a),
-                      const Color(0xFFb71111c),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16.0),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'About',
-                        style: TextStyle(
-                          color: Colors.grey[200],
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla facilisi. Donec vel magna ut magna efficitur efficitur. Praesent vel efficitur magna.',
-                        style: TextStyle(
-                          color: Colors.grey[200],
-                          fontSize: 16,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

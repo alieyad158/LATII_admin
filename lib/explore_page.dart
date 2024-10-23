@@ -146,13 +146,12 @@ class _ExplorePageState extends State<ExplorePage> {
             padding: const EdgeInsets.all(16.0),
             child: Row(
               children: [
-                // استخدام رابط الصورة من Firebase Storage
                 ClipRRect(
                   borderRadius: BorderRadius.circular(12),
                   child: Image.network(
                     course['image'] != null && course['image'].isNotEmpty
                         ? course['image']
-                        : 'https://via.placeholder.com/100', // رابط افتراضي للصورة
+                        : 'https://via.placeholder.com/100',
                     width: 100,
                     height: 100,
                     fit: BoxFit.cover,
@@ -369,6 +368,7 @@ class _ExplorePageState extends State<ExplorePage> {
           : Column(
         children: [
           _filterButtonsWithImages(),
+          const SizedBox(height: 16), // إضافة مساحة بين الأزرار والبطاقات
           Expanded(child: _coursesList()),
           Padding(
             padding: const EdgeInsets.all(16.0),
