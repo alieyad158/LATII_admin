@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'Edit_course.dart'; // تأكد من أن اسم الملف صحيح
+import 'Edit_course.dart';
 import 'course_details_page.dart';
 import 'add_course_page.dart';
 
@@ -15,6 +15,7 @@ class _ExplorePageState extends State<ExplorePage> {
   String? selectedCategory;
   final List<Map<String, dynamic>> courses = [];
   bool isLoading = false;
+  final TextEditingController _searchController = TextEditingController();
 
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -61,185 +62,14 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  Widget _filterButtonsWithImages() {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: [
-          _filterButton('All', Icons.list),
-          const SizedBox(width: 8),
-          _filterButton('Programming', 'images/cod.png'),
-          const SizedBox(width: 8),
-          _filterButton('Design', 'images/dis.png'),
-          const SizedBox(width: 8),
-          _filterButton('Cybersecurity', 'images/sy.png'),
-          const SizedBox(width: 8),
-          _filterButton('App Development', 'images/app.png'),
-        ],
-      ),
+  void _editCourse(Map<String, dynamic> course) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => EditCoursePage(course: course)),
     );
-  }
-
-  Widget _filterButton(String title, dynamic icon) {
-    bool isSelected = selectedCategory == title;
-
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          selectedCategory = (isSelected && title == 'All') ? null : title;
-        });
-      },
-      child: Container(
-        decoration: BoxDecoration(
-          border: Border.all(color: Colors.red),
-          borderRadius: BorderRadius.circular(8),
-          color: isSelected ? Colors.red[100] : Colors.white,
-        ),
-        padding: const EdgeInsets.all(8),
-        child: Row(
-          children: [
-            Text(title, style: const TextStyle(color: Colors.black)),
-            const SizedBox(width: 8),
-            icon is IconData
-                ? Icon(icon, size: 40)
-                : SizedBox(
-              width: 40,
-              height: 40,
-              child: ClipOval(
-                child: Image.asset(
-                  icon,
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _coursesList() {
-    final filteredCourses = selectedCategory == null || selectedCategory == 'All'
-        ? courses
-        : courses.where((course) => course['category'] == selectedCategory).toList();
-
-    return Column(
-      children: filteredCourses.map<Widget>((course) {
-        return _courseCard(course);
-      }).toList(),
-    );
-  }
-
-  Widget _courseCard(Map<String, dynamic> course) {
-    Timestamp? publishedDate = course['published_date'];
-
-    return SizedBox(
-      width: double.infinity,
-      child: GestureDetector(
-        onTap: () {
-          _navigateToCourseDetails(course);
-        },
-        child: Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          elevation: 4,
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    course['image'] != null && course['image'].isNotEmpty
-                        ? course['image']
-                        : 'https://via.placeholder.com/100',
-                    width: 100,
-                    height: 100,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Center(child: Icon(Icons.error, size: 40));
-                    },
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        course['title'] ?? 'No Title',
-                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(course['description'] ?? 'No Description'),
-                      const SizedBox(height: 8),
-                      Text('Duration: ${course['duration'] ?? 'Not Specified'}'),
-                      const SizedBox(height: 8),
-                      Text('Location: ${course['location'] ?? 'Not Specified'}'),
-                      const SizedBox(height: 8),
-                      Text(
-                        _formatPublishedDate(publishedDate),
-                        style: const TextStyle(fontSize: 14, color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  children: [
-                    _actionButtonWithIcon(Icons.delete, () {
-                      _showDeleteConfirmationDialog(course['id']);
-                    }),
-                    const SizedBox(height: 8),
-                    _editIconButton(course),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _editIconButton(Map<String, dynamic> course) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF980E0E),
-            Color(0xFF330000),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: IconButton(
-        icon: const Icon(Icons.edit, color: Colors.white),
-        onPressed: () {
-          _editCourse(course);
-        },
-      ),
-    );
-  }
-
-  Widget _actionButtonWithIcon(IconData icon, VoidCallback onPressed) {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF980E0E),
-            Color(0xFF330000),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: IconButton(
-        icon: Icon(icon, color: Colors.white),
-        onPressed: onPressed,
-      ),
-    );
+    if (result == true) {
+      _fetchCourses();
+    }
   }
 
   void _showDeleteConfirmationDialog(String courseId) {
@@ -247,17 +77,17 @@ class _ExplorePageState extends State<ExplorePage> {
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('تأكيد الحذف'),
-          content: const Text('هل أنت متأكد أنك تريد حذف هذه الدورة؟'),
+          title: const Text('Delete Confirmation'),
+          content: const Text('Are you sure you want to delete this course?'),
           actions: <Widget>[
             TextButton(
-              child: const Text('إلغاء'),
+              child: const Text('Cancel'),
               onPressed: () {
                 Navigator.of(context).pop();
               },
             ),
             TextButton(
-              child: const Text('حذف'),
+              child: const Text('Delete'),
               onPressed: () {
                 _deleteCourse(courseId);
                 Navigator.of(context).pop();
@@ -269,24 +99,6 @@ class _ExplorePageState extends State<ExplorePage> {
     );
   }
 
-  String _formatPublishedDate(Timestamp? publishedDate) {
-    if (publishedDate == null) return 'Unknown Date';
-
-    final Duration difference = DateTime.now().difference(publishedDate.toDate());
-
-    if (difference.inDays < 7) {
-      if (difference.inHours > 0) {
-        return 'تم نشره منذ ${difference.inHours} ساعة';
-      } else if (difference.inMinutes > 0) {
-        return 'تم نشره منذ ${difference.inMinutes} دقيقة';
-      } else {
-        return 'تم نشره منذ ثوانٍ';
-      }
-    } else {
-      return '${publishedDate.toDate().day}/${publishedDate.toDate().month}/${publishedDate.toDate().year}';
-    }
-  }
-
   void _deleteCourse(String courseId) async {
     try {
       await _firestore.collection('courses').doc(courseId).delete();
@@ -296,50 +108,237 @@ class _ExplorePageState extends State<ExplorePage> {
     }
   }
 
-  void _editCourse(Map<String, dynamic> course) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => EditCoursePage(course: course)),
+  Widget _actionButtonWithIcon(IconData icon, VoidCallback onPressed) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF980E0E), Color(0xFF330000)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: IconButton(
+        icon: Icon(icon, color: Colors.white, size: 20),
+        constraints: const BoxConstraints(
+          minWidth: 32,
+          minHeight: 32,
+        ),
+        padding: const EdgeInsets.all(6),
+        onPressed: onPressed,
+      ),
     );
-    if (result == true) {
-      _fetchCourses();
-    }
   }
 
-  Widget _addCourseButton() {
-    return GestureDetector(
-      onTap: () async {
-        final result = await Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => AddCoursePage()),
-        );
-        if (result == true) {
-          _fetchCourses(); // تحديث القائمة بعد إضافة الدورة
-        }
-      },
-      child: Container(
-        width: double.infinity,
-        height: 50,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              Color(0xFF980E0E),
-              Color(0xFF330000),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: TextField(
+        controller: _searchController,
+        decoration: InputDecoration(
+          hintText: 'Search for courses...',
+          prefixIcon: const Icon(Icons.search, color: Color(0xFF980E0E)),
+          filled: true,
+          fillColor: Colors.grey[100],
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(30),
+            borderSide: BorderSide.none,
           ),
-          borderRadius: BorderRadius.circular(12),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         ),
-        child: const Center(
+      ),
+    );
+  }
+
+  Widget _buildCategorySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 16, bottom: 12),
           child: Text(
-            'Add New Course',
+            'Categories',
             style: TextStyle(
-              color: Colors.white,
-              fontSize: 16,
+              fontSize: 20,
               fontWeight: FontWeight.bold,
             ),
           ),
+        ),
+        SizedBox(
+          height: 100,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            children: [
+              _categoryCard('Programming', 'images/cod.png', '150+ Courses'),
+              _categoryCard('Design', 'images/dis.png', '80+ Courses'),
+              _categoryCard('Cybersecurity', 'images/sy.png', '60+ Courses'),
+              _categoryCard('App Development', 'images/app.png', '90+ Courses'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _categoryCard(String title, String imagePath, String courseCount) {
+    bool isSelected = selectedCategory == title;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          selectedCategory = isSelected ? null : title;
+        });
+      },
+      child: Container(
+        width: 140,
+        margin: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? const LinearGradient(
+            colors: [Color(0xFF980E0E), Color(0xFF330000)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          )
+              : null,
+          color: isSelected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Image.asset(
+              imagePath,
+              width: 40,
+              height: 40,
+              color: isSelected ? Colors.white : const Color(0xFF980E0E),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: TextStyle(
+                color: isSelected ? Colors.white : Colors.black,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(
+              courseCount,
+              style: TextStyle(
+                color: isSelected ? Colors.white70 : Colors.grey,
+                fontSize: 12,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCourseCard(Map<String, dynamic> course) {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () => _navigateToCourseDetails(course),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+              child: Image.network(
+                course['image'] ?? 'https://via.placeholder.com/400x200',
+                height: 160,
+                width: double.infinity,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    height: 160,
+                    color: Colors.grey[300],
+                    child: const Icon(Icons.error),
+                  );
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          course['title'] ?? 'No Title',
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Row(
+                        children: [
+                          _actionButtonWithIcon(
+                            Icons.edit,
+                                () => _editCourse(course),
+                          ),
+                          const SizedBox(width: 8),
+                          _actionButtonWithIcon(
+                            Icons.delete,
+                                () => _showDeleteConfirmationDialog(course['id']),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    course['description'] ?? 'No Description',
+                    style: TextStyle(color: Colors.grey[600]),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Icon(Icons.access_time, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        course['duration'] ?? 'Not Specified',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                      const SizedBox(width: 16),
+                      Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                      const SizedBox(width: 4),
+                      Text(
+                        course['location'] ?? 'Not Specified',
+                        style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -353,28 +352,45 @@ class _ExplorePageState extends State<ExplorePage> {
         flexibleSpace: Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(
-              colors: [
-                Color(0xFF980E0E),
-                Color(0xFF330000),
-              ],
+              colors: [Color(0xFF980E0E), Color(0xFF330000)],
               begin: Alignment.topLeft,
-              end: Alignment.topRight,
+              end: Alignment.bottomRight,
             ),
           ),
         ),
+        iconTheme: const IconThemeData(color: Colors.white),
       ),
       body: isLoading
-          ? Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator())
           : Column(
         children: [
-          _filterButtonsWithImages(),
-          const SizedBox(height: 16), // إضافة مساحة بين الأزرار والبطاقات
-          Expanded(child: _coursesList()),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: _addCourseButton(),
+          _buildSearchBar(),
+          _buildCategorySection(),
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.only(bottom: 80),
+              itemCount: courses.length,
+              itemBuilder: (context, index) => _buildCourseCard(courses[index]),
+            ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () async {
+          final result = await Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => AddCoursePage()),
+          );
+          if (result == true) {
+            _fetchCourses();
+          }
+        },
+        label: const Text(
+          'Add Course',
+          style: TextStyle(color: Colors.white),
+        ),
+        icon: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: const Color(0xFF980E0E),
       ),
     );
   }

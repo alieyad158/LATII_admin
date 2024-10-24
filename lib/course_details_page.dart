@@ -28,91 +28,41 @@ class CourseDetailsPage extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
         ),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back, color: Colors.white),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
+        child: SafeArea(
+          child: CustomScrollView(
+            slivers: [
+              SliverAppBar(
+                expandedHeight: 200.0,
+                floating: false,
+                pinned: true,
+                flexibleSpace: FlexibleSpaceBar(
+                  title: Text(courseName),
+                  background: imageUrl != null
+                      ? Image.network(
+                    imageUrl!,
+                    fit: BoxFit.cover,
+                  )
+                      : Container(
+                    color: Colors.grey[300],
+                    child: const Center(
+                      child: Icon(Icons.image_not_supported, size: 50),
+                    ),
                   ),
-                  const SizedBox(width: 8),
-                  const Text(
-                    'Course Details and Enrolled Students',
-                    style: TextStyle(color: Colors.white, fontSize: 20),
-                  ),
-                ],
+                ),
+                backgroundColor: const Color(0xFF980E0E),
               ),
-              const SizedBox(height: 10),
-              Expanded(
-                child: SingleChildScrollView(
-                  child: Card(
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    elevation: 8,
-                    color: Colors.white,
-                    child: Padding(
-                      padding: const EdgeInsets.all(16.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Center(
-                            child: Text(
-                              courseName,
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.red,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          imageUrl != null
-                              ? ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.network(
-                              imageUrl!,
-                              width: double.infinity,
-                              height: 250,
-                              fit: BoxFit.cover,
-                            ),
-                          )
-                              : const Text('No image available', style: TextStyle(fontSize: 16, color: Colors.black)),
-                          const SizedBox(height: 16),
-
-                          // عرض الطلاب المقبولين
-                          const Text(
-                            'Accepted Students',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          _buildAcceptedStudentsList(),
-
-                          const SizedBox(height: 16),
-                          // عرض الطلبات الجديدة
-                          const Text(
-                            'New Registration Requests',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          _buildRegistrationRequestsList(),
-                        ],
-                      ),
-                    ),
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildSectionTitle('Accepted Students'),
+                      _buildAcceptedStudentsList(),
+                      const SizedBox(height: 24),
+                      _buildSectionTitle('New Registration Requests'),
+                      _buildRegistrationRequestsList(),
+                    ],
                   ),
                 ),
               ),
@@ -123,9 +73,26 @@ class CourseDetailsPage extends StatelessWidget {
     );
   }
 
+  Widget _buildSectionTitle(String title) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16.0),
+      child: Text(
+        title,
+        style: const TextStyle(
+          fontSize: 24,
+          fontWeight: FontWeight.bold,
+          color: Colors.white,
+        ),
+      ),
+    );
+  }
+
   Widget _buildAcceptedStudentsList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('registered_accepted').where('course_id', isEqualTo: courseId).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('registered_accepted')
+          .where('course_id', isEqualTo: courseId)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -134,7 +101,7 @@ class CourseDetailsPage extends StatelessWidget {
           return const Center(child: Text('Error loading accepted students'));
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('No students accepted'));
+          return const Center(child: Text('No students accepted', style: TextStyle(color: Colors.white)));
         }
 
         final acceptedStudents = snapshot.data!.docs;
@@ -154,7 +121,10 @@ class CourseDetailsPage extends StatelessWidget {
 
   Widget _buildRegistrationRequestsList() {
     return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance.collection('registration_requests').where('course_id', isEqualTo: courseId).snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('registration_requests')
+          .where('course_id', isEqualTo: courseId)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator());
@@ -163,7 +133,7 @@ class CourseDetailsPage extends StatelessWidget {
           return const Center(child: Text('Error loading registration requests'));
         }
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('No new registration requests'));
+          return const Center(child: Text('No new registration requests', style: TextStyle(color: Colors.white)));
         }
 
         final requests = snapshot.data!.docs;
@@ -188,40 +158,31 @@ class CourseDetailsPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       elevation: 4,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF980E0E), Color(0xFF330000)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
+      color: Colors.white.withOpacity(0.1),
+      child: ExpansionTile(
+        title: Text(
+          'Name: ${student['full_name'] ?? 'No Name'}',
+          style: const TextStyle(color: Colors.white),
         ),
-        child: ExpansionTile(
-          title: Text(
-            'Name: ${student['full_name'] ?? 'No Name'}',
-            style: const TextStyle(color: Colors.white),
-          ),
-          subtitle: Text(
-            'Email: ${student['email'] ?? 'No Email'}',
-            style: const TextStyle(color: Colors.white),
-          ),
-          iconColor: Colors.white, // تغيير لون السهم إلى الأبيض
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Phone: ${student['phone'] ?? 'No Phone'}', style: const TextStyle(color: Colors.white)),
-                  Text('Education: ${student['education'] ?? 'N/A'}', style: const TextStyle(color: Colors.white)),
-                  Text('Has Job: ${student['has_job'] == true ? 'Yes' : 'No'}', style: const TextStyle(color: Colors.white)),
-                  Text('Has Computer: ${student['has_computer'] == true ? 'Yes' : 'No'}', style: const TextStyle(color: Colors.white)),
-                ],
-              ),
+        subtitle: Text(
+          'Email: ${student['email'] ?? 'No Email'}',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        iconColor: Colors.white,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildInfoRow('Phone', student['phone'] ?? 'No Phone'),
+                _buildInfoRow('Education', student['education'] ?? 'N/A'),
+                _buildInfoRow('Has Job', student['has_job'] == true ? 'Yes' : 'No'),
+                _buildInfoRow('Has Computer', student['has_computer'] == true ? 'Yes' : 'No'),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -233,69 +194,68 @@ class CourseDetailsPage extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
       ),
       elevation: 4,
-      child: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFF980E0E), Color(0xFF330000)],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(12),
+      color: Colors.white.withOpacity(0.1),
+      child: ExpansionTile(
+        title: Text(
+          'Name: ${request['full_name'] ?? 'No Name'}',
+          style: const TextStyle(color: Colors.white),
         ),
-        child: ExpansionTile(
-          title: Text(
-            'Name: ${request['full_name'] ?? 'No Name'}',
-            style: const TextStyle(color: Colors.white),
-          ),
-          subtitle: Text(
-            'Email: ${request['email'] ?? 'No Email'}',
-            style: const TextStyle(color: Colors.white),
-          ),
-          iconColor: Colors.white, // تغيير لون السهم إلى الأبيض
-          children: [
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Phone: ${request['phone'] ?? 'No Phone'}', style: const TextStyle(color: Colors.white)),
-                  Text('Education: ${request['education'] ?? 'N/A'}', style: const TextStyle(color: Colors.white)),
-                  Text('Has Job: ${request['has_job'] == true ? 'Yes' : 'No'}', style: const TextStyle(color: Colors.white)),
-                  Text('Has Computer: ${request['has_computer'] == true ? 'Yes' : 'No'}', style: const TextStyle(color: Colors.white)),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey),
-                        ),
-                        child: TextButton(
-                          onPressed: () => _confirmRegistration(request, requestId),
-                          child: const Text('Confirm', style: TextStyle(color: Colors.green)),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey),
-                        ),
-                        child: TextButton(
-                          onPressed: () => _rejectRegistration(requestId),
-                          child: const Text('Reject', style: TextStyle(color: Colors.red)),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+        subtitle: Text(
+          'Email: ${request['email'] ?? 'No Email'}',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        iconColor: Colors.white,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildInfoRow('Phone', request['phone'] ?? 'No Phone'),
+                _buildInfoRow('Education', request['education'] ?? 'N/A'),
+                _buildInfoRow('Has Job', request['has_job'] == true ? 'Yes' : 'No'),
+                _buildInfoRow('Has Computer', request['has_computer'] == true ? 'Yes' : 'No'),
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    ElevatedButton(
+                      onPressed: () => _confirmRegistration (request, requestId),
+                      child: const Text('Confirm'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton(
+                      onPressed: () => _rejectRegistration(requestId),
+                      child: const Text('Reject'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String title, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(color: Colors.white70),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            value,
+            style: const TextStyle(color: Colors.white),
+          ),
+        ],
       ),
     );
   }

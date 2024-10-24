@@ -91,8 +91,8 @@ class _JobSeekersPageState extends State<JobSeekersPage> {
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: isSelected ? const Color(0xFF980E0E) : Colors.white,
-                  border: Border.all(color: isSelected ? Colors.white : const Color(0xFF980E0E)),
+                  color: isSelected ? Color(0xFF980E0E) : Colors.white,
+                  border: Border.all(color: isSelected ? Colors.white : Color(0xFF980E0E)),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
@@ -100,7 +100,7 @@ class _JobSeekersPageState extends State<JobSeekersPage> {
                 child: Text(
                   city,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : const Color(0xFF980E0E),
+                    color: isSelected ? Colors.white : Color(0xFF980E0E),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -138,8 +138,8 @@ class _JobSeekersPageState extends State<JobSeekersPage> {
             },
             child: Container(
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF980E0E) : Colors.white,
-                border: Border.all(color: isSelected ? Colors.white : const Color(0xFF980E0E)),
+                color: isSelected ? Color(0xFF980E0E) : Colors.white,
+                border: Border.all(color: isSelected ? Colors.white : Color(0xFF980E0E)),
                 borderRadius: BorderRadius.circular(10),
               ),
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
@@ -147,7 +147,7 @@ class _JobSeekersPageState extends State<JobSeekersPage> {
               child: Text(
                 course,
                 style: TextStyle(
-                  color: isSelected ? Colors.white : const Color(0xFF980E0E),
+                  color: isSelected ? Colors.white : Color(0xFF980E0E),
                   fontWeight: FontWeight.bold,
                 ),
               ),
@@ -172,12 +172,14 @@ class _JobSeekersPageState extends State<JobSeekersPage> {
 
   Widget _buildJobSeekersList() {
     final filteredJobSeekers = jobSeekers.where((seeker) {
+      final data = seeker.data();
+      if (data == null) return false;
+
       bool cityMatches = selectedCity == 'All Cities' ||
-          (seeker.data().containsKey('city') && seeker.get('city') == selectedCity);
+          (data['city'] as String? ?? '').toLowerCase() == selectedCity.toLowerCase();
       bool matchesCourses = selectedCourses.isEmpty ||
-          (seeker.data().containsKey('courses') &&
-              seeker.get('courses').any((course) => selectedCourses.contains(course)));
-      bool matchesGraduate = isGraduate ? (seeker.data().containsKey('category') && seeker.get('category') == 'Graduate') : true;
+          (data['courses'] as List<dynamic>?)!.any((course) => selectedCourses.contains(course)) ?? false;
+      bool matchesGraduate = !isGraduate || (data['category'] as String? ?? '').toLowerCase() == 'graduate';
 
       return cityMatches && matchesCourses && matchesGraduate;
     }).toList();
@@ -186,176 +188,173 @@ class _JobSeekersPageState extends State<JobSeekersPage> {
       itemCount: filteredJobSeekers.length,
       itemBuilder: (context, index) {
         final seeker = filteredJobSeekers[index];
+        final data = seeker.data() ?? {};
+
         return Card(
-          margin: const EdgeInsets.all(10),
-          elevation: 8,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF980E0E),
-                  const Color(0xFF330000),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.red.withOpacity(0.3),
-                  spreadRadius: 2,
-                  blurRadius: 10,
-                  offset: const Offset(0, 3),
+          margin: const EdgeInsets.all(16),
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    CircleAvatar(
+                      radius: 40,
+                      backgroundImage: NetworkImage(
+                        data['image'] as String? ?? 'images/default.png',
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            data['name'] as String? ?? "غير متوفر",
+                            style: TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF980E0E),
+                            ),
+                          ),
+                          Text(
+                            data['university'] as String? ?? "غير متوفر",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF330000),
+                            ),
+                          ),
+                          Text(
+                            data['city'] as String? ?? "غير متو فر",
+                            style: TextStyle(
+                              fontSize: 16,
+                              color: Color(0xFF330000),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    // Implement edit functionality
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF980E0E),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 40),
+                  ),
+                  child: const Text('Edit'),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'About',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF980E0E),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  data['about'] as String? ?? "No information available",
+                  style: TextStyle(
+                    fontSize: 16,
+                    color: Color(0xFF330000),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Experience',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF980E0E),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildExperienceItem(data, 'experience'),
+                const SizedBox(height: 16),
+                Text(
+                  'Education',
+                  style: TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.bold,
+                    color: Color(0xFF980E0E),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                _buildExperienceItem(data, 'education'),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    // Implement export to PDF functionality
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Color(0xFF980E0E),
+                    foregroundColor: Colors.white,
+                    minimumSize: const Size(double.infinity, 48),
+                  ),
+                  child: const Text('Export to PDF'),
                 ),
               ],
             ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildExperienceItem(Map<String, dynamic> data, String type) {
+    final List<dynamic> items = data[type] as List<dynamic>? ?? [];
+    return Column(
+      children: items.map((item) => Padding(
+        padding: const EdgeInsets.only(bottom: 8),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: Colors.grey[200],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                type == 'experience' ? Icons.work : Icons.school,
+                color: Color(0xFF980E0E),
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      if (seeker.data().containsKey('city'))
-                        Text(
-                          seeker.get('city'),
-                          style: const TextStyle(
-                            color: Colors.orange,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
-                        ),
-                      if (seeker.data().containsKey('category') && seeker.get('category') == 'Graduate') ...[
-                        const SizedBox(width: 8),
-                        const Icon(
-                          Icons.school,
-                          color: Colors.orange,
-                          size: 20,
-                        ),
-                      ],
-                    ],
+                  Text(
+                    (item as Map<String, dynamic>)['title'] as String? ?? '',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF980E0E),
+                    ),
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        width: 120,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 5),
-                        ),
-                        child: ClipOval(
-                          child: Image.network(
-                            seeker.data().containsKey('image') ? seeker.get('image') : 'images/default.png',
-                            fit: BoxFit.cover,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              seeker.data().containsKey('name') ? seeker.get('name') : "غير متوفر",
-                              style: const TextStyle(
-                                fontSize: 25,
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            Text(
-                              'University: ${seeker.data().containsKey('university') ? seeker.get('university') : "غير متوفر"}',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                color: Colors.white,
-                              ),
-                            ),
-                            Text(
-                              'Age: ${seeker.data().containsKey('age') ? seeker.get('age') : "غير متوفر"}',
-                              style: const TextStyle(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            Wrap(
-                              spacing: 8,
-                              children: seeker.data().containsKey('courses')
-                                  ? seeker.get('courses').map<Widget>((course) {
-                                return Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red[100],
-                                    borderRadius: BorderRadius.circular(20),
-                                  ),
-                                  child: Text(
-                                    course,
-                                    style: TextStyle(color: Colors.red[800], fontWeight: FontWeight.bold),
-                                  ),
-                                );
-                              }).toList()
-                                  : [],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  Center(
-                    child: GestureDetector(
-                      onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => JobSeekerDetailPage(
-                              name: seeker.data().containsKey('name') ? seeker.get('name') : 'غير متوفر',
-                              email: seeker.data().containsKey('email') ? seeker.get('email') : 'غير متوفر',
-                              phone: seeker.data().containsKey('phone') ? seeker.get('phone') : 'غير متوفر',
-                              cv: seeker.data().containsKey('cv') ? seeker.get('cv') : 'غير متوفر',
-                              image: seeker.data().containsKey('image') ? seeker.get('image') : 'غير متوفر',
-                            ),
-                          ),
-                        );
-                      },
-                      child: Container(
-                        width: 200,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              const Color(0xFFFFA500),
-                              const Color(0xFF980E0E),
-                            ],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: const Text(
-                          'View More',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
+                  Text(
+                    (item as Map<String, dynamic>)['subtitle'] as String? ?? '',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Color(0xFF330000),
                     ),
                   ),
                 ],
               ),
             ),
-          ),
-        );
-      },
+          ],
+        ),
+      )).toList(),
     );
   }
 }
