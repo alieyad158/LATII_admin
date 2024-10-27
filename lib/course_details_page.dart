@@ -60,7 +60,7 @@ class CourseDetailsPage extends StatelessWidget {
                       _buildSectionTitle('Accepted Students'),
                       _buildAcceptedStudentsList(),
                       const SizedBox(height: 24),
-                      _buildSectionTitle('New Registration Requests'),
+                      _buildSectionTitle('Registration Requests'),
                       _buildRegistrationRequestsList(),
                     ],
                   ),
@@ -91,7 +91,7 @@ class CourseDetailsPage extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('registered_accepted')
-          .where('course_id', isEqualTo: courseId)
+          .where('courseId', isEqualTo: courseId)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -123,7 +123,8 @@ class CourseDetailsPage extends StatelessWidget {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
           .collection('registration_requests')
-          .where('course_id', isEqualTo: courseId)
+          .where('courseId', isEqualTo: courseId)
+          .where('isGraduated', isEqualTo: false)
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -161,11 +162,11 @@ class CourseDetailsPage extends StatelessWidget {
       color: Colors.white.withOpacity(0.1),
       child: ExpansionTile(
         title: Text(
-          'Name: ${student['full_name'] ?? 'No Name'}',
+          'Name: ${student['fullName']?.toString() ?? 'No Name'}',
           style: const TextStyle(color: Colors.white),
         ),
         subtitle: Text(
-          'Email: ${student['email'] ?? 'No Email'}',
+          'Email: ${student['email']?.toString() ?? 'No Email'}',
           style: const TextStyle(color: Colors.white70),
         ),
         iconColor: Colors.white,
@@ -175,10 +176,10 @@ class CourseDetailsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoRow('Phone', student['phone'] ?? 'No Phone'),
-                _buildInfoRow('Education', student['education'] ?? 'N/A'),
-                _buildInfoRow('Has Job', student['has_job'] == true ? 'Yes' : 'No'),
-                _buildInfoRow('Has Computer', student['has_computer'] == true ? 'Yes' : 'No'),
+                _buildInfoRow('Phone', student['phone']?.toString() ?? 'No Phone'),
+                _buildInfoRow('Education', student['education']?.toString() ?? 'N/A'),
+                _buildInfoRow('Has Job', (student['hasJob'] as bool?) == true ? 'Yes' : 'No'),
+                _buildInfoRow('Has Computer', (student['hasComputer'] as bool?) == true ? 'Yes' : 'No'),
               ],
             ),
           ),
@@ -197,11 +198,11 @@ class CourseDetailsPage extends StatelessWidget {
       color: Colors.white.withOpacity(0.1),
       child: ExpansionTile(
         title: Text(
-          'Name: ${request['full_name'] ?? 'No Name'}',
+          'Name: ${request['fullName']?.toString() ?? 'No Name'}',
           style: const TextStyle(color: Colors.white),
         ),
         subtitle: Text(
-          'Email: ${request['email'] ?? 'No Email'}',
+          'Email: ${request['email']?.toString() ?? 'No Email'}',
           style: const TextStyle(color: Colors.white70),
         ),
         iconColor: Colors.white,
@@ -211,16 +212,16 @@ class CourseDetailsPage extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildInfoRow('Phone', request['phone'] ?? 'No Phone'),
-                _buildInfoRow('Education', request['education'] ?? 'N/A'),
-                _buildInfoRow('Has Job', request['has_job'] == true ? 'Yes' : 'No'),
-                _buildInfoRow('Has Computer', request['has_computer'] == true ? 'Yes' : 'No'),
+                _buildInfoRow('Phone', request['phone']?.toString() ?? 'No Phone'),
+                _buildInfoRow('Education', request['education']?.toString() ?? 'N/A'),
+                _buildInfoRow('Has Job', (request['hasJob'] as bool?) == true ? 'Yes' : 'No'),
+                _buildInfoRow('Has Computer', (request['hasComputer'] as bool?) == true ? 'Yes' : 'No'),
                 const SizedBox(height: 16),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     ElevatedButton(
-                      onPressed: () => _confirmRegistration (request, requestId),
+                      onPressed: () => _confirmRegistration(request, requestId),
                       child: const Text('Confirm'),
                       style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                     ),
@@ -261,15 +262,25 @@ class CourseDetailsPage extends StatelessWidget {
   }
 
   Future<void> _confirmRegistration(Map<String, dynamic> registration, String registrationId) async {
-    // إضافة المسجل المقبول إلى الكوليكشن الجديد
-    await FirebaseFirestore.instance.collection('registered_accepted').doc(registrationId).set(registration);
-
-    // حذف التسجيل من الكوليكشن القديم
+    await FirebaseFirestore.instance.collection('registered_accepted').doc(registrationId).set({
+      'courseId': registration['courseId'],
+      'fullName': registration['fullName'],
+      'email': registration['email'],
+      'phone': registration['phone'],
+      'education': registration['education'],
+      'hasJob': registration['hasJob'],
+      'hasComputer': registration['hasComputer'],
+      'nearestCity': registration['nearestCity'],
+      'residence': registration['residence'],
+      'qualification': registration['qualification'],
+      'graduationDate': registration['graduationDate'],
+      'isGraduated': registration['isGraduated'],
+      'age': registration['age'],
+    });
     await FirebaseFirestore.instance.collection('registration_requests').doc(registrationId).delete();
   }
 
   Future<void> _rejectRegistration(String registrationId) async {
-    // حذف التسجيل المرفوض من الكوليكشن
     await FirebaseFirestore.instance.collection('registration_requests').doc(registrationId).delete();
   }
 }

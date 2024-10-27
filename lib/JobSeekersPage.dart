@@ -240,7 +240,7 @@ class _JobSeekersPageState extends State<JobSeekersPage> {
                   ],
                 ),
                 const SizedBox(height: 16),
-                ElevatedButton(
+               /* ElevatedButton(
                   onPressed: () {
                     // Implement edit functionality
                   },
@@ -250,7 +250,7 @@ class _JobSeekersPageState extends State<JobSeekersPage> {
                     minimumSize: const Size(double.infinity, 40),
                   ),
                   child: const Text('Edit'),
-                ),
+                ),*/
                 const SizedBox(height: 16),
                 Text(
                   'About',
@@ -300,7 +300,7 @@ class _JobSeekersPageState extends State<JobSeekersPage> {
                     foregroundColor: Colors.white,
                     minimumSize: const Size(double.infinity, 48),
                   ),
-                  child: const Text('Export to PDF'),
+                  child: const Text('View Profile'),
                 ),
               ],
             ),

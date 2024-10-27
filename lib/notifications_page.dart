@@ -11,14 +11,13 @@ class NotificationsPage extends StatefulWidget {
 class _NotificationsPageState extends State<NotificationsPage> {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   List<QueryDocumentSnapshot<Map<String, dynamic>>> _notifications = [];
-  String _errorMessage = '';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: const Text(
-          'الإشعارات',
+          'Notification',
           style: TextStyle(color: Colors.white),
         ),
         flexibleSpace: Container(
@@ -57,75 +56,53 @@ class _NotificationsPageState extends State<NotificationsPage> {
               final notification = _notifications[index];
               return _notificationItem(
                 context,
-                notification.data()?['name'] as String?,
-                notification.data()?['courseId'] as String?,
-                notification.data()?['timestamp']?.toDate().toString() ?? 'No time',
+                notification.data()!,
                 notification.id,
               );
             },
           );
         },
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _uploadAllNotifications,
+        child: const Icon(Icons.refresh),
+      ),
     );
   }
 
-  Future<void> _acceptNotification(String notificationId) async {
+  Future<void> _uploadAllNotifications() async {
     try {
-      DocumentSnapshot<Map<String, dynamic>> requestDoc =
-      await _firestore.collection('job_seekers').doc(notificationId).get();
-
-      if (requestDoc.exists) {
-        await _firestore.collection('job_seekers_accepted').add({
-          'name': requestDoc.data()?['name'],
-          'courseId': requestDoc.data()?['courseId'],
-          'timestamp': FieldValue.serverTimestamp(),
+      QuerySnapshot<Map<String, dynamic>> snapshot = await _firestore.collection('job_seekers').get();
+      for (var document in snapshot.docs) {
+        await _firestore.collection('notifications').add({
+          'name': document.data()['name'],
+          'age': document.data()['age'],
+          'city': document.data()['city'],
+          'courses': document.data()['courses'],
+          'cv': document.data()['cv'],
+          'email': document.data()['email'],
+          'graduate': document.data()['graduate'],
+          'image': document.data()['image'],
+          'phone': document.data()['phone'],
+          'university': document.data()['university'],
+          'timestamp': document.data()['timestamp'],
         });
-
-        await _firestore.collection('job_seekers').doc(notificationId).delete();
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Notification accepted successfully.'),
-          ),
-        );
-      } else {
-        print('Request document does not exist: $notificationId'); // Debugging line
       }
-    } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error accepting notification: $e'),
-        ),
-      );
-      print('Error accepting notification: $e'); // Debugging line
-    }
-  }
-
-  Future<void> _rejectNotification(String notificationId) async {
-    try {
-      await _firestore.collection('job_seekers').doc(notificationId).delete();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Notification rejected successfully.'),
-        ),
+        const SnackBar(content: Text('All notifications uploaded successfully.')),
       );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Error rejecting notification: $e'),
-        ),
+        SnackBar(content: Text('Error uploading notifications: $e')),
       );
-      print('Error rejecting notification: $e'); // Debugging line
+      print('Error uploading notifications: $e'); // Debugging line
     }
   }
 
-  Widget _notificationItem(
-      BuildContext context,
-      String? studentName,
-      String? courseId,
-      String? time,
-      String notificationId) {
+  Widget _notificationItem(BuildContext context, Map<String, dynamic> data, String notificationId) {
+    final String studentName = data['name'] ?? 'Unknown';
+    final String courseId = (data['courses'] as List?)?.join(', ') ?? 'No courses';
+
     return Card(
       elevation: 4,
       margin: const EdgeInsets.only(bottom: 10),
@@ -145,7 +122,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    time ?? 'No time',
+                    data['timestamp']?.toDate().toString() ?? 'No time',
                     style: const TextStyle(color: Colors.grey),
                   ),
                 ],
@@ -154,7 +131,7 @@ class _NotificationsPageState extends State<NotificationsPage> {
             Column(
               children: [
                 IconButton(
-                  icon: const Icon(Icons.check, color: Colors .green),
+                  icon: const Icon(Icons.check, color: Colors.green),
                   onPressed: () {
                     _acceptNotification(notificationId);
                   },
@@ -171,5 +148,48 @@ class _NotificationsPageState extends State<NotificationsPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _acceptNotification(String notificationId) async {
+    try {
+      DocumentSnapshot<Map<String, dynamic>> requestDoc =
+      await _firestore.collection('job_seekers').doc(notificationId).get();
+
+      if (requestDoc.exists) {
+        await _firestore.collection('job_seekers_accepted').add({
+          'name': requestDoc.data()?['name'],
+          'courseId': requestDoc.data()?['courseId'],
+          'timestamp': FieldValue.serverTimestamp(),
+        });
+
+        await _firestore.collection('job_seekers').doc(notificationId).delete();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notification accepted successfully.')),
+        );
+      } else {
+        print('Request document does not exist: $notificationId'); // Debugging line
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error accepting notification: $e')),
+      );
+      print('Error accepting notification: $e'); // Debugging line
+    }
+  }
+
+  Future<void> _rejectNotification(String notificationId) async {
+    try {
+      await _firestore.collection('job_seekers').doc(notificationId).delete();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Notification rejected successfully.')),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error rejecting notification: $e')),
+      );
+      print('Error rejecting notification: $e'); // Debugging line
+    }
   }
 }
