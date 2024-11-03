@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
+import 'StartingCoursesPage.dart';
 import 'jobSeekersPage.dart';
 import 'home_page.dart';
 import 'explore_page.dart';
 import 'jobs_page.dart';
-import 'book_page.dart';
 
 class HomeScreen extends StatefulWidget {
-  final int selectedIndex; // إضافة هذه السطر
+  final int selectedIndex;
 
   const HomeScreen({super.key, this.selectedIndex = 0}); // القيمة الافتراضية 0
 
@@ -15,7 +15,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  late int _selectedIndex; // استخدام late
+  late int _selectedIndex;
 
   @override
   void initState() {
@@ -28,8 +28,8 @@ class _HomeScreenState extends State<HomeScreen> {
     const HomePage(),
     const ExplorePage(),
     const JobsPage(),
-    const JobSeekersPage(), // الانتقال إلى صفحة الباحثين عن الوظائف هنا
-    const BookPage(),
+    const JobSeekersPage(),
+    const StartingCoursesPage(), // استبدال BookPage بـ StartingCoursesPage
   ];
 
   void _onItemTapped(int index) {
@@ -77,7 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
             onPressed: () {
               _onFloatingButtonPressed();
               setState(() {
-                _selectedIndex = 4;
+                _selectedIndex = 4; // تعيين الفهرس إلى 4 لفتح صفحة الكورسات
               });
             },
           ),
@@ -104,11 +104,11 @@ class _HomeScreenState extends State<HomeScreen> {
             mainAxisSize: MainAxisSize.max,
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: <Widget>[
-              _buildAnimatedIcon(0, Icons.article), // أيقونة آخر الأخبار
+              _buildAnimatedIcon(0, Icons.article),
               _buildAnimatedIcon(1, Icons.manage_search_sharp), // تغيير أيقونة البحث إلى أيقونة الكورسات
               const SizedBox(width: 48),
-              _buildAnimatedIcon(2, Icons.work), // أيقونة الوظائف
-              _buildAnimatedIcon(3, Icons.group), // أيقونة الباحثين عن العمل
+              _buildAnimatedIcon(2, Icons.work),
+              _buildAnimatedIcon(3, Icons.group),
             ],
           ),
         ),
@@ -147,7 +147,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: IconButton(
         icon: Icon(
           icon,
-          color: isSelected ? Colors.orange : Colors.red[900], // استخدام البرتقالي عند التحديد
+          color: isSelected ? Colors.orange : Colors.red[900],
           size: isSelected ? 36 : 28,
         ),
         onPressed: () {

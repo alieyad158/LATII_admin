@@ -41,6 +41,7 @@ class _JobsPageState extends State<JobsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        automaticallyImplyLeading: false, // إلغاء علامة الرجوع
         title: const Text(
           'Job Listings',
           style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),

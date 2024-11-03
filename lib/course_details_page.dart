@@ -32,24 +32,50 @@ class CourseDetailsPage extends StatelessWidget {
           child: CustomScrollView(
             slivers: [
               SliverAppBar(
-                expandedHeight: 200.0,
+                expandedHeight: 300.0, // زيادة ارتفاع شريط التطبيق
                 floating: false,
                 pinned: true,
+                backgroundColor: const Color(0xFF980E0E),
+                iconTheme: const IconThemeData(color: Colors.white), // لون زر الرجوع أبيض
                 flexibleSpace: FlexibleSpaceBar(
-                  title: Text(courseName),
-                  background: imageUrl != null
-                      ? Image.network(
-                    imageUrl!,
-                    fit: BoxFit.cover,
-                  )
-                      : Container(
-                    color: Colors.grey[300],
-                    child: const Center(
-                      child: Icon(Icons.image_not_supported, size: 50),
-                    ),
+                  background: Column(
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          courseName,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 8), // مساحة إضافية بين العنوان والصورة
+                      Expanded(
+                        child: imageUrl != null && imageUrl!.isNotEmpty
+                            ? Image.network(
+                          imageUrl!,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Colors.grey,
+                              child: const Center(
+                                child: Icon(Icons.image_not_supported, size: 50),
+                              ),
+                            );
+                          },
+                        )
+                            : Container(
+                          color: Colors.grey,
+                          child: const Center(
+                            child: Icon(Icons.image_not_supported, size: 50),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                backgroundColor: const Color(0xFF980E0E),
               ),
               SliverToBoxAdapter(
                 child: Padding(
@@ -60,8 +86,8 @@ class CourseDetailsPage extends StatelessWidget {
                       _buildSectionTitle('Accepted Students'),
                       _buildAcceptedStudentsList(),
                       const SizedBox(height: 24),
-                      _buildSectionTitle('Registration Requests'),
-                      _buildRegistrationRequestsList(),
+                      _buildSectionTitle('Previous Videos'),
+                      _buildPreviousVideosList(),
                     ],
                   ),
                 ),
@@ -90,8 +116,9 @@ class CourseDetailsPage extends StatelessWidget {
   Widget _buildAcceptedStudentsList() {
     return StreamBuilder<QuerySnapshot>(
       stream: FirebaseFirestore.instance
-          .collection('registered_accepted')
-          .where('courseId', isEqualTo: courseId)
+          .collection('courses')
+          .doc(courseId)
+          .collection('accepted_students')
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
@@ -113,39 +140,6 @@ class CourseDetailsPage extends StatelessWidget {
           itemBuilder: (context, index) {
             final student = acceptedStudents[index].data() as Map<String, dynamic>;
             return _buildStudentCard(student);
-          },
-        );
-      },
-    );
-  }
-
-  Widget _buildRegistrationRequestsList() {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('registration_requests')
-          .where('courseId', isEqualTo: courseId)
-          .where('isGraduated', isEqualTo: false)
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return const Center(child: Text('Error loading registration requests'));
-        }
-        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
-          return const Center(child: Text('No new registration requests', style: TextStyle(color: Colors.white)));
-        }
-
-        final requests = snapshot.data!.docs;
-
-        return ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: requests.length,
-          itemBuilder: (context, index) {
-            final request = requests[index].data() as Map<String, dynamic>;
-            return _buildRequestCard(request, requests[index].id);
           },
         );
       },
@@ -188,56 +182,45 @@ class CourseDetailsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildRequestCard(Map<String, dynamic> request, String requestId) {
-    return Card(
-      margin: const EdgeInsets.symmetric(vertical: 8.0),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      elevation: 4,
-      color: Colors.white.withOpacity(0.1),
-      child: ExpansionTile(
-        title: Text(
-          'Name: ${request['fullName']?.toString() ?? 'No Name'}',
-          style: const TextStyle(color: Colors.white),
-        ),
-        subtitle: Text(
-          'Email: ${request['email']?.toString() ?? 'No Email'}',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        iconColor: Colors.white,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildInfoRow('Phone', request['phone']?.toString() ?? 'No Phone'),
-                _buildInfoRow('Education', request['education']?.toString() ?? 'N/A'),
-                _buildInfoRow('Has Job', (request['hasJob'] as bool?) == true ? 'Yes' : 'No'),
-                _buildInfoRow('Has Computer', (request['hasComputer'] as bool?) == true ? 'Yes' : 'No'),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    ElevatedButton(
-                      onPressed: () => _confirmRegistration(request, requestId),
-                      child: const Text('Confirm'),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
-                    ),
-                    const SizedBox(width: 8),
-                    ElevatedButton(
-                      onPressed: () => _rejectRegistration(requestId),
-                      child: const Text('Reject'),
-                      style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
+  Widget _buildPreviousVideosList() {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('courses')
+          .doc(courseId)
+          .collection('videos')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return const Center(child: Text('Error loading videos'));
+        }
+        if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          return const Center(child: Text('No previous videos available', style: TextStyle(color: Colors.white)));
+        }
+
+        final videos = snapshot.data!.docs;
+
+        return ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: videos.length,
+          itemBuilder: (context, index) {
+            final video = videos[index].data() as Map<String, dynamic>;
+            return ListTile(
+              title: Text(video['title'] ?? 'Untitled', style: const TextStyle(color: Colors.white)),
+              subtitle: Text(video['description'] ?? 'No Description', style: const TextStyle(color: Colors.white70)),
+              trailing: IconButton(
+                icon: const Icon(Icons.play_arrow, color: Colors.white),
+                onPressed: () {
+                  // هنا يمكنك إضافة منطق لتشغيل الفيديو.
+                },
+              ),
+            );
+          },
+        );
+      },
     );
   }
 
@@ -259,28 +242,5 @@ class CourseDetailsPage extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  Future<void> _confirmRegistration(Map<String, dynamic> registration, String registrationId) async {
-    await FirebaseFirestore.instance.collection('registered_accepted').doc(registrationId).set({
-      'courseId': registration['courseId'],
-      'fullName': registration['fullName'],
-      'email': registration['email'],
-      'phone': registration['phone'],
-      'education': registration['education'],
-      'hasJob': registration['hasJob'],
-      'hasComputer': registration['hasComputer'],
-      'nearestCity': registration['nearestCity'],
-      'residence': registration['residence'],
-      'qualification': registration['qualification'],
-      'graduationDate': registration['graduationDate'],
-      'isGraduated': registration['isGraduated'],
-      'age': registration['age'],
-    });
-    await FirebaseFirestore.instance.collection('registration_requests').doc(registrationId).delete();
-  }
-
-  Future<void> _rejectRegistration(String registrationId) async {
-    await FirebaseFirestore.instance.collection('registration_requests').doc(registrationId).delete();
   }
 }

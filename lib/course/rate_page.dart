@@ -1,112 +1,101 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'WeekDetailPage.dart';
 
 class RatePage extends StatefulWidget {
-  const RatePage({super.key});
+  final String courseId; // استقبل courseId من الصفحة السابقة
+
+  const RatePage({super.key, required this.courseId});
 
   @override
   _RatePageState createState() => _RatePageState();
 }
 
 class _RatePageState extends State<RatePage> {
-  final List<Map<String, dynamic>> _ratings = [
-    {'title': 'Week 1: Kotlin', 'rating': 0},
-    {'title': 'Week 2: Kotlin', 'rating': 0},
-    {'title': 'Week 3: Kotlin', 'rating': 0},
-    {'title': 'Week 4: UI/UX', 'rating': 0},
-    {'title': 'Week 5: Backend', 'rating': 0},
-    {'title': 'Week 6: Flutter', 'rating': 0},
-    {'title': 'Week 7: Flutter', 'rating': 0},
-    {'title': 'Week 8: Flutter', 'rating': 0},
-  ];
+  final List<String> _weeks = [];
+  final TextEditingController _weekTitleController = TextEditingController();
+  String? _documentId;
 
-  void _showRatingDialog(String title, int index) {
-    double rating = _ratings[index]['rating'].toDouble(); // الحصول على التقييم الحالي
+  @override
+  void initState() {
+    super.initState();
+    _documentId = widget.courseId; // استخدم courseId كمستند معرف
+    _loadExistingWeeks(); // تحميل الأسابيع الموجودة عند بدء الصفحة
+  }
+  Future<void> _loadExistingWeeks() async {
+    if (_documentId != null) {
+      try {
+        QuerySnapshot snapshot = await FirebaseFirestore.instance
+            .collection('starting_courses')
+            .doc(_documentId!)
+            .collection('weeks')
+            .get();
+
+        setState(() {
+          _weeks.addAll(snapshot.docs.map((doc) => doc['title'] as String).toList());
+        });
+      } catch (e) {
+        print("Error loading weeks: $e");
+      }
+    }
+  }
+  void _showAddWeekDialog() {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15.0), // زوايا دائرية
+        return AlertDialog(
+          title: const Text('Add Week'),
+          content: TextField(
+            controller: _weekTitleController,
+            decoration: const InputDecoration(hintText: 'Enter week title'),
           ),
-          child: Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  const Color(0xFF980E0E), // اللون الأحمر الداكن
-                  const Color(0xFFFF5A5A), // اللون الأحمر الفاتح
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-            ),
-            padding: const EdgeInsets.all(20.0),
-            child: StatefulBuilder(
-              builder: (BuildContext context, StateSetter setState) {
-                return Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Rate $title',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white, // لون النص
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                    Slider(
-                      value: rating,
-                      min: 0,
-                      max: 5,
-                      divisions: 5,
-                      label: rating.round().toString(),
-                      activeColor: Colors.yellow, // لون شريط التقييم النشط
-                      inactiveColor: Colors.grey,
-                      onChanged: (double value) {
-                        setState(() {
-                          rating = value; // تحديث القيمة
-                        });
-                      },
-                    ),
-                    Text(
-                      'Rating: ${rating.round()}',
-                      style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.white),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.of(context).pop();
-                          },
-                          child: const Text('Cancel', style: TextStyle(color: Colors.white)),
-                        ),
-                        ElevatedButton(
-                          onPressed: () {
-                            setState(() {
-                              _ratings[index]['rating'] = rating.round(); // حفظ التقييم
-                            });
-                            Navigator.of(context).pop();
-                          },
-                          style: ElevatedButton.styleFrom(
-                            foregroundColor: Colors.black, backgroundColor: Colors.yellow, // لون النص
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(20.0), // زوايا دائرية للزر
-                            ),
-                            padding: const EdgeInsets.symmetric(vertical: 10.0, horizontal: 20.0), // حجم الزر
-                          ),
-                          child: const Text('Submit'),
-                        ),
-                      ],
-                    ),
-                  ],
-                );
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
               },
+              child: const Text('Cancel'),
             ),
-          ),
+            ElevatedButton(
+              onPressed: () {
+                _addWeek();
+                Navigator.of(context).pop();
+              },
+              child: const Text('Add'),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  Future<void> _addWeek() async {
+    String title = _weekTitleController.text.trim();
+    if (title.isNotEmpty && _documentId != null) {
+      try {
+        // إضافة الأسبوع الجديد إلى Firestore
+        await FirebaseFirestore.instance
+            .collection('starting_courses')
+            .doc(_documentId!)
+            .collection('weeks')
+            .add({'title': title});
+
+        setState(() {
+          _weeks.add(title); // تحديث الواجهة
+        });
+        _weekTitleController.clear(); // مسح حقل الإدخال
+      } catch (e) {
+        print("Error adding week: $e");
+      }
+    }
+  }
+
+  void _navigateToWeekDetail(String weekTitle) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => WeekDetailPage(courseId: _documentId!, weekTitle: weekTitle),
+      ),
     );
   }
 
@@ -114,86 +103,43 @@ class _RatePageState extends State<RatePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [
-              Color(0xFF980E0E), // اللون الأحمر الداكن
-              Color(0xFFFF5A5A), // اللون الأحمر الفاتح
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ).createShader(bounds),
-          child: const Text(
-            'Rate',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-            ),
+        title: const Text('Manage Weeks'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: _showAddWeekDialog, // فتح دايلوج لإضافة أسبوع جديد
           ),
-        ),
-        backgroundColor: Colors.transparent, // يجعل شريط العنوان شفافًا
-        elevation: 0,
+        ],
       ),
       body: ListView(
         padding: const EdgeInsets.all(16.0),
-        children: _ratings.asMap().entries.map((entry) {
-          int index = entry.key;
-          var rating = entry.value;
-
-          return _buildRatingCard(rating['title'], rating['rating'], index);
+        children: _weeks.map((week) {
+          return GestureDetector(
+            onTap: () => _navigateToWeekDetail(week), // الانتقال إلى صفحة التفاصيل عند الضغط
+            child: _buildWeekCard(week),
+          );
         }).toList(),
       ),
     );
   }
 
-  Widget _buildRatingCard(String title, int rating, int index) {
+  Widget _buildWeekCard(String title) {
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8.0),
-      elevation: 8, // زيادة الظل
+      elevation: 8,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(20.0), // زوايا دائرية
+        borderRadius: BorderRadius.circular(20.0),
       ),
-      color: Colors.white, // لون خلفية الكارد
+      color: Colors.white,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.red, // لون العنوان
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: List.generate(5, (i) {
-                return Icon(
-                  i < rating ? Icons.star : Icons.star_border,
-                  color: Colors.amber,
-                );
-              }),
-            ),
-            const SizedBox(height: 16),
-            Center( // إضافة Center هنا لجعل الزر في المنتصف
-              child: ElevatedButton(
-                onPressed: () {
-                  _showRatingDialog(title, index); // فتح دايلوج التقييم عند الضغط على الزر
-                },
-                style: ElevatedButton.styleFrom(
-                  foregroundColor: Colors.white, backgroundColor: const Color(0xFF980E0E), // لون النص
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(20.0), // زوايا دائرية للزر
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: 20.0), // زيادة حجم الزر
-                  elevation: 5, // ظل للزر
-                ),
-                child: const Text('Rate Now'),
-              ),
-            ),
-          ],
+        child: Text(
+          title,
+          style: const TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: Colors.red,
+          ),
         ),
       ),
     );

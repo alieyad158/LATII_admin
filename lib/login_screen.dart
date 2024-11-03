@@ -21,20 +21,20 @@ class _LoginScreenState extends State<LoginScreen> {
       body: Stack(
         children: [
           // Gradient background
-        Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              const Color(0xFF4A0000), // اللون الثاني
-              Colors.red[900]!, // اللون الأول
-            ],
-            begin: Alignment.bottomLeft,
-            end: Alignment.topRight,
+          Container(
+            width: double.infinity,
+            height: double.infinity,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  const Color(0xFF4A0000), // اللون الثاني
+                  Colors.red[900]!, // اللون الأول
+                ],
+                begin: Alignment.bottomLeft,
+                end: Alignment.topRight,
+              ),
+            ),
           ),
-        ),
-      ),
           // White overlay image
           Container(
             width: double.infinity,

@@ -1,53 +1,129 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class MessagesPage extends StatelessWidget {
-  const MessagesPage({super.key});
+class MessagesPage extends StatefulWidget {
+  final String courseToken;
+
+  const MessagesPage({
+    Key? key,
+    required this.courseToken,
+  }) : super(key: key);
+
+  @override
+  _MessagesPageState createState() => _MessagesPageState();
+}
+
+class _MessagesPageState extends State<MessagesPage> {
+  final TextEditingController _messageController = TextEditingController();
+  late CollectionReference _messagesRef;
+  late String _userId;
+  String? _documentId;
+
+  @override
+  void initState() {
+    super.initState();
+    _messagesRef = FirebaseFirestore.instance.collection('courses');
+    _userId = 'user123'; // Replace with actual user ID
+    _fetchDocumentId();
+  }
+
+  Future<void> _fetchDocumentId() async {
+    try {
+      DocumentSnapshot snapshot = await _messagesRef.doc(widget.courseToken).get();
+
+      if (snapshot.exists) {
+        setState(() {
+          _documentId = snapshot.id;
+          print("Document ID: $_documentId");
+        });
+      } else {
+        print("No document found for this course.");
+      }
+    } catch (e) {
+      print("Error fetching document ID: $e");
+    }
+  }
+
+  Future<void> _sendMessage(String messageContent) async {
+    if (_documentId != null && messageContent.isNotEmpty) {
+      try {
+        await _messagesRef
+            .doc(_documentId)
+            .collection('messages')
+            .add({
+          'sender': _userId,
+          'time': FieldValue.serverTimestamp(),
+          'content': messageContent,
+          'courseId': widget.courseToken,
+        });
+
+        _messageController.clear();
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error sending message: $e")),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Document ID is null or message is empty.")),
+      );
+    }
+  }
+
+  String _formatTime(Timestamp? timestamp) {
+    if (timestamp == null) return '';
+    final date = timestamp.toDate();
+    return "${date.hour}:${date.minute.toString().padLeft(2, '0')}";
+  }
 
   @override
   Widget build(BuildContext context) {
-    // قائمة تجريبية من الرسائل
-    final List<Message> messages = [
-      Message(sender: 'Alice', time: '2:00 PM', content: 'Hello everyone!'),
-      Message(sender: 'Bob', time: '2:01 PM', content: 'Hi Alice, how are you?'),
-      Message(sender: 'Charlie', time: '2:02 PM', content: 'Did everyone complete the assignment?'),
-      Message(sender: 'You', time: '2:03 PM', content: 'I finished it yesterday!'), // رسالة من المستخدم
-      Message(sender: 'Eva', time: '2:04 PM', content: 'Great job, David!'),
-      Message(sender: 'Alice', time: '2:05 PM', content: 'Let’s discuss the project tomorrow.'),
-    ];
-
     return Scaffold(
       appBar: AppBar(
-        title: ShaderMask(
-          shaderCallback: (bounds) => const LinearGradient(
-            colors: [
-              Color(0xFF980E0E), // اللون الأحمر الداكن
-              Color(0xFFFF5A5A), // اللون الأحمر الفاتح
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ).createShader(bounds),
-          child: const Text(
-            'Course Chat',
-            style: TextStyle(
-              fontSize: 24, // حجم الخط
-              fontWeight: FontWeight.bold, // جعل الخط عريض
-              color: Colors.white, // يجب تعيين لون الخط إلى الأبيض لكي يظهر التدرج
-            ),
-          ),
-        ),
-        centerTitle: true, // توسيط العنوان
-        backgroundColor: Colors.transparent, // خلفية شفافة
-        elevation: 0, // إزالة الظل
+        title: const Text('Course Chat'),
+        centerTitle: true,
       ),
       body: Column(
         children: [
-          const Divider(thickness: 2, color: Colors.grey), // خط تحت العنوان
+          const Divider(thickness: 2, color: Colors.grey),
           Expanded(
-            child: ListView.builder(
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final message = messages[index];
-                return _buildMessageBubble(message);
+            child: StreamBuilder<QuerySnapshot>(
+              stream: _documentId != null
+                  ? _messagesRef
+                  .doc(_documentId)
+                  .collection('messages')
+                  .orderBy('time')
+                  .snapshots()
+                  : Stream.empty(),
+              builder: (context, snapshot) {
+                if (snapshot.connectionState == ConnectionState.waiting) {
+                  return const Center(child: CircularProgressIndicator());
+                }
+
+                if (snapshot.hasError) {
+                  return Center(child: Text('Error: ${snapshot.error}'));
+                }
+
+                if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+                  return const Center(child: Text('No messages yet'));
+                }
+
+                final messages = snapshot.data!.docs.map((doc) {
+                  final data = doc.data() as Map<String, dynamic>;
+                  return Message(
+                    sender: data['sender'] == _userId ? 'You' : data['sender'],
+                    time: _formatTime(data['time'] as Timestamp?),
+                    content: data['content'] ?? '',
+                  );
+                }).toList();
+
+                return ListView.builder(
+                  itemCount: messages.length,
+                  itemBuilder: (context, index) {
+                    final message = messages[index];
+                    return _buildMessageBubble(message);
+                  },
+                );
               },
             ),
           ),
@@ -58,8 +134,7 @@ class MessagesPage extends StatelessWidget {
   }
 
   Widget _buildMessageBubble(Message message) {
-    // تحديد الفقاعة بناءً على من أرسل الرسالة
-    final isMe = message.sender == 'You'; // افترض أن المستخدم هو 'You'
+    final isMe = message.sender == 'You';
 
     return Align(
       alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
@@ -67,23 +142,7 @@ class MessagesPage extends StatelessWidget {
         margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
         padding: const EdgeInsets.all(10),
         decoration: BoxDecoration(
-          gradient: isMe
-              ? const LinearGradient(
-            colors: [
-              Color(0xFFFF8C00), // برتقالي غامق
-              Color(0xFFFFA500), // برتقالي فاتح
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          )
-              : const LinearGradient(
-            colors: [
-              Color(0xFF980E0E), // أحمر غامق
-              Color(0xFF330000), // أحمر داكن
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: isMe ? Colors.orange : Colors.red,
           borderRadius: BorderRadius.circular(15),
         ),
         child: Column(
@@ -91,15 +150,12 @@ class MessagesPage extends StatelessWidget {
           children: [
             Text(
               message.content,
-              style: TextStyle(color: isMe ? Colors.white : Colors.white),
+              style: const TextStyle(color: Colors.white),
             ),
             const SizedBox(height: 5),
             Text(
               message.time,
-              style: TextStyle(
-                color: isMe ? Colors.white70 : Colors.white70,
-                fontSize: 12,
-              ),
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
         ),
@@ -114,11 +170,12 @@ class MessagesPage extends StatelessWidget {
         children: [
           Expanded(
             child: TextField(
+              controller: _messageController,
               decoration: InputDecoration(
                 hintText: 'Type a message...',
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(30),
-                  borderSide: BorderSide(color: Colors.grey),
+                  borderSide: const BorderSide(color: Colors.grey),
                 ),
               ),
             ),
@@ -127,7 +184,7 @@ class MessagesPage extends StatelessWidget {
           IconButton(
             icon: const Icon(Icons.send),
             onPressed: () {
-              // يمكنك إضافة وظيفة لإرسال الرسالة هنا
+              _sendMessage(_messageController.text);
             },
           ),
         ],
@@ -136,7 +193,6 @@ class MessagesPage extends StatelessWidget {
   }
 }
 
-// نموذج الرسالة
 class Message {
   final String sender;
   final String time;
