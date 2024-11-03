@@ -1,6 +1,5 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:untitled9/home_screen.dart';
 import 'login_screen.dart';
 
 Future main() async {
@@ -21,7 +20,7 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.red,
       ),
-      home:  const HomeScreen(), // Default page is the login screen
+      home:  const LoginScreen(), // Default page is the login screen
     );
   }
 }
